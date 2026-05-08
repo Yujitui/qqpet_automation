@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### 修复
+- **Windows 启动后桌宠不显示 / renderer 崩溃（#10）**：回退到 v1.5.0 已验证的 Electron 28 运行时与打包配置，移除 v1.5.1 引入的 Electron 33 升级、V8 堆裁剪和 Chromium 功能裁剪；保留 v1.6.0 的 DeepSeek、商店与专注守护功能代码。
+- 撤回 v1.6.1 rc 中针对 Electron 33 的启动开关、`contextIsolation:false` 和 preload 改写实验，恢复 v1.5.0/v1.6.0 原有窗口隔离模型。
+
 ## [1.6.0] - 2026-05-04
 
 ### 新增
