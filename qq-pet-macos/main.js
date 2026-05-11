@@ -49,23 +49,107 @@ if (initData?.NODE_TOOL && typeof initData?.NODE_TOOL === "string") {
   useTool = require("./src/windows/tool/" + initData.NODE_TOOL + "/main.js");
 }
 
-const createWindow = async () => {
-  require("./src/ini/init.js");
-  process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true";
-  process.on("unhandledRejection", function (e, t) {});
-  app.setAppUserModelId("pet");
+// 网络层
+const auth = require("./src/network/auth");
+const loginManager = require("./src/network/login/main");
+const remoteStore = require("./src/ini/remoteStore");
 
-  if (gotTheLock) {
-    if (useTool) {
-      useTool.cleate("only");
-    } else {
-      require("./src/ini/doMain.js");
-      const { startDataWatcher } = require("./src/ini/dataWatcher.js");
-      startDataWatcher();
-    }
-  } else {
+// 阻止自动退出：所有窗口关闭后继续运行（托盘图标应用需要）
+app.on("window-all-closed", () => {
+  console.log("All windows closed, keeping app running (tray mode)");
+});
+
+async function startMainGame() {
+  console.log("[startMainGame] Starting...");
+
+  if (!gotTheLock) {
+    console.log("[startMainGame] Another instance running, exiting");
     app.exit(true);
+    return;
   }
+
+  try {
+    console.log("[startMainGame] Setting up environment...");
+    process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true";
+    app.setAppUserModelId("pet");
+
+    if (useTool) {
+      console.log("[startMainGame] Tool mode:", initData.NODE_TOOL);
+      useTool.cleate("only");
+      console.log("[startMainGame] Tool started");
+      return;
+    }
+
+    // 初始化 RemoteStore
+    console.log("[startMainGame] Initializing RemoteStore...");
+    await remoteStore.init();
+    console.log("[startMainGame] RemoteStore ready, isRemoteMode:", remoteStore.isRemoteMode);
+
+    // 加载 init.js
+    console.log("[startMainGame] Loading init.js...");
+    require("./src/ini/init.js");
+    console.log("[startMainGame] init.js loaded");
+
+    // 关键：init.js 中的 store.js 会设置 global.$Store
+    // 所以必须在 init.js 加载后重新设置为 RemoteStore
+    global.$Store = remoteStore;
+    console.log("[startMainGame] global.$Store set to RemoteStore (after init.js)");
+
+    // 加载 doMain.js
+    console.log("[startMainGame] Loading doMain.js...");
+    require("./src/ini/doMain.js");
+    console.log("[startMainGame] doMain.js loaded");
+
+    console.log("[startMainGame] Main game fully started!");
+
+  } catch (err) {
+    console.error("[startMainGame] ERROR:", err.message);
+    console.error("[startMainGame] Stack:", err.stack);
+    // 即使出错也不退出，保持应用运行
+  }
+}
+
+const createWindow = async () => {
+  loginManager.setupIpcHandlers();
+
+  loginManager.setOnLoginSuccess(() => {
+    console.log("Login success, starting main game...");
+    startMainGame();
+  });
+
+  global.onAuthRequired = () => {
+    console.log("Auth required, showing login window");
+    loginManager.createLoginWindow();
+  };
+
+  global.onKicked = (reason) => {
+    console.log("Kicked from server:", reason);
+    loginManager.createLoginWindow();
+  };
+
+  if (useTool) {
+    startMainGame();
+    return;
+  }
+
+  // 保持原始的 unhandledRejection 行为（完全静默）
+  process.on("unhandledRejection", function (e, t) {});
+
+  if (auth.isAuthenticated()) {
+    try {
+      const api = require("./src/network/api");
+      await api.getCurrentUser();
+      console.log("Token valid, starting game...");
+      startMainGame();
+      return;
+    } catch (e) {
+      console.log("Token invalid, clearing tokens:", e.message);
+      auth.clearTokens();
+    }
+  }
+
+  console.log("Showing login window...");
+  loginManager.createLoginWindow();
 };
 
 // macOS: 不加载 PepFlash DLL（使用 Ruffle WASM 替代）

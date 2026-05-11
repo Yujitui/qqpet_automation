@@ -7,6 +7,56 @@ on:
   workflow_dispatch:
 
 jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        run: |
+          cd server
+          pip install -r requirements.txt
+
+      - name: Test backend imports
+        run: |
+          cd server
+          python -c "from app.main import app; print('Backend imports OK')"
+          python -c "from app.models import User, PetData, PetInventory, UserSettings, Session; print('Models imports OK')"
+          python -c "from app.api import auth, pet, inventory, settings; print('API imports OK')"
+
+      - name: Run basic tests
+        run: |
+          cd server
+          python -c "
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
+
+# Test health endpoint
+response = client.get('/health')
+assert response.status_code == 200
+assert response.json() == {'status': 'healthy'}
+print('Health check: PASSED')
+
+# Test root endpoint
+response = client.get('/')
+assert response.status_code == 200
+data = response.json()
+assert 'message' in data
+assert 'version' in data
+print('Root endpoint: PASSED')
+
+print('\\nAll basic tests PASSED!')
+"
+
   build-macos:
     runs-on: macos-latest
     strategy:

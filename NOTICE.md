@@ -24,7 +24,7 @@
 
 ## 2. 源程序来源声明 (Source Program Provenance)
 
-本项目所基于的原始 Electron 应用程序（即 `qq_pet_asar/`、`qq_pet_app/`、`qq_pet_extracted/` 目录中的内容，以及 `qq-pet-macos/src/` 中由原始 `app.asar` 解包并修改而来的源码），**并非本项目原创**，而是来源于 **公开互联网上流传的"QQ宠物怀旧服 v1.2.4"安装包**。其著作权归原作者所有；本项目仅出于以下目的对其进行解包、分析与最小必要修改：
+本项目所基于的原始 Electron 应用程序（即 `qq-pet-macos/src/` 中由原始 `app.asar` 解包并修改而来的源码），**并非本项目原创**，而是来源于 **公开互联网上流传的"QQ宠物怀旧服 v1.2.4"安装包**。其著作权归原作者所有；本项目仅出于以下目的对其进行解包、分析与最小必要修改：
 
 1. 学术性逆向研究与通信协议分析；
 2. 跨平台（macOS / Windows / Linux）兼容性移植；
@@ -41,10 +41,9 @@
 以下内容为本项目原创，按 [LICENSE](./LICENSE) 文件中的 **MIT 许可证** 授权：
 
 - 通信协议逆向分析报告（`新版QQ宠物1.2.4-逆向通信分析报告.{tex,pdf}`、`docs/`）
-- Python 管理工具与命令行（`src/qq_pet/`、`tests/`、`pyproject.toml`、`requirements.txt`、`config.yaml`）
+- **FastAPI 后端服务**（`server/` 目录下的所有代码：认证服务、数据持久化、多设备同步 API）
 - macOS / Windows / Linux 移植所做的代码修改（`qq-pet-macos/main.js` 等由本项目作者编写或修改的部分）
 - 构建脚本、CI 工作流（`.github/workflows/`）与项目元数据
-- OpenClaw Skill 定义（`skills/qq-pet/`）
 - `README.md`、`LICENSE`、`NOTICE.md`、`CONTRIBUTING.md` 等项目文档
 
 ---
@@ -56,11 +55,13 @@
 | 组件 | 许可证 | 项目主页 |
 |---|---|---|
 | Electron | MIT | <https://github.com/electron/electron> |
-| Chromium | BSD-style | 见 `qq_pet_app/LICENSES.chromium.html` |
+| FastAPI | MIT | <https://fastapi.tiangolo.com> |
+| SQLAlchemy | MIT | <https://www.sqlalchemy.org> |
+| PostgreSQL | PostgreSQL License | <https://www.postgresql.org> |
 | Ruffle (Flash WASM emulator) | MIT / Apache-2.0 | <https://ruffle.rs> |
-| 其他 npm / PyPI 依赖 | 各自许可证 | 详见 `package.json` / `pyproject.toml` |
+| 其他 npm / PyPI 依赖 | 各自许可证 | 详见 `package.json` / `server/requirements.txt` |
 
-Electron 完整许可文本随构建产物分发，参见 `qq_pet_app/LICENSE.electron.txt` 与 `qq_pet_app/LICENSES.chromium.html`。
+Electron 完整许可文本随构建产物分发，参见 `qq-pet-macos/LICENSE` 与相关文件。
 
 ---
 

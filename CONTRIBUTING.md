@@ -20,7 +20,7 @@ QQ 宠物的 IP 是腾讯的，原 Electron 程序也是从网上扒来的怀旧
 - 跨平台兼容（macOS / Windows / Linux）
 - 隐私加固（移除遥测、指纹）
 - Flash → Ruffle / WASM 改进
-- Python CLI 的功能、测试、修 bug
+- **后端服务**（`server/` 目录）的功能、测试、修 bug
 - 错别字、翻译、说明改进
 
 不确定算不算红线就先开 Issue 问。
@@ -35,16 +35,37 @@ npm install
 npx electron .
 ```
 
-Python 工具：
+后端服务：
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-pip install -e ".[dev]"
+# 使用 Docker（推荐）
+docker-compose up -d postgres
+cd server
+source .venv/bin/activate
+uvicorn app.main:app --reload
+
+# 或使用 SQLite（单机开发）
+cd server
+source .venv/bin/activate
+uvicorn app.main:app --reload
+```
+
+数据库迁移：
+
+```bash
+cd server
+alembic revision --autogenerate -m "描述"
+alembic upgrade head
+```
+
+后端测试：
+
+```bash
+cd server
 pytest
 ```
 
-要求 Node.js ≥ 18，Python ≥ 3.10。
+要求 Node.js ≥ 18，Python ≥ 3.9。
 
 ## 提交
 

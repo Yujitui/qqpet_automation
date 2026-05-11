@@ -1,19 +1,50 @@
 # QQ 宠物管家 (WorkBuddy)
 
-QQ 宠物（怀旧服 v1.2.4）的逆向分析与桌面移植项目（macOS / Windows / Linux），附带 OpenClaw Skill 实现宠物自动管理。
+QQ 宠物（怀旧服 v1.2.4）的逆向分析与桌面移植项目（macOS / Windows / Linux），新增 **FastAPI 后端** 实现账号体系、数据持久化与多设备同步。
 
 <img width="540" height="824" alt="image" src="https://github.com/user-attachments/assets/6597c635-fb8a-45cc-b0cb-8a49ca5b1314" />
 
 ## 项目概述
 
-本项目完成了四件事：
+本项目完成了以下内容：
 
 1. **逆向分析** — 完整分析了 QQ 宠物的通信架构（Express + WebSocket + RSA 上报）
 2. **桌面移植** — 提取 Electron 源码，移除遥测/指纹采集，用 Ruffle WASM 替代 Flash，适配 macOS 和 Windows
-3. **自动化管理** — Python CLI 直接读写 electron-store 数据文件，实现宠物状态监控与养护
+3. **后端服务** — FastAPI + PostgreSQL 实现账号注册/登录、数据持久化、多设备同步（单点登录踢出）
 4. **AI 对话接入** — 桌宠对话从硬编码字典升级为 DeepSeek LLM 动态生成，宠物会感知时间、剪贴板内容、自身状态等上下文做出针对性反应
 
 <img width="320" height="334" alt="image" src="https://github.com/user-attachments/assets/457cf203-b00f-4108-a6f8-cf44d75fe315" />
+
+## 架构
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Electron 客户端                              │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │              网络同步层（HTTP 批量同步）                  │   │
+│  │  - HTTP API Client (Axios)                               │   │
+│  │  - RemoteStore (内存缓存 + 1秒去抖批量同步)              │   │
+│  └───────────────────────────┬─────────────────────────────┘   │
+└───────────────────────────────┼──────────────────────────────────┘
+                                │ HTTP (GET/PATCH)
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        FastAPI 后端                              │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐  ┌─────────────────┐                      │
+│  │   HTTP API      │  │  认证服务       │                      │
+│  │  - 用户/宠物    │  │  - JWT Token   │                      │
+│  │  - 背包/设置    │  │  - 会话管理    │                      │
+│  └────────┬────────┘  └────────┬────────┘                      │
+│           │                     │                                │
+│           ▼                     ▼                                │
+│  ┌─────────────────────────────────────────────────┐           │
+│  │           SQLAlchemy ORM + PostgreSQL            │           │
+│  │  - sessions.is_active 单点登录踢出标记            │           │
+│  └─────────────────────────────────────────────────┘           │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## 演示视频
 
@@ -25,7 +56,7 @@ QQ 宠物（怀旧服 v1.2.4）的逆向分析与桌面移植项目（macOS / Wi
 
 ## 快速开始
 
-### 1. 启动宠物
+### 1. 启动宠物（单机模式）
 
 从 [Releases](https://github.com/xuemian168/qqpet_automation/releases) 下载对应平台的安装包：
 
@@ -88,77 +119,33 @@ cd qq-pet-macos && npm install && npx electron .
 
 宠物会出现在桌面上，可拖动、右键菜单、状态栏图标。
 
-### 2. 安装管理工具
+### 2. 启动后端服务（多设备同步）
+
+使用 Docker 启动 PostgreSQL + 后端服务：
 
 ```bash
+# 启动 PostgreSQL（后台运行）
+docker-compose up -d postgres
+
+# 准备后端环境
+cd server
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+
+# 启动后端服务
+uvicorn app.main:app --reload
 ```
 
-### 3. 查看宠物状态
+后端服务运行在 `http://localhost:8000`，可通过 Electron 客户端连接。
+
+#### 数据库迁移
 
 ```bash
-.venv/bin/python -m src.qq_pet.cli status
+cd server
+alembic revision --autogenerate -m "描述"
+alembic upgrade head
 ```
-
-输出示例：
-
-```json
-{
-  "name": "爹",
-  "host": "主",
-  "level": 1,
-  "hunger": 3034,
-  "hunger_max": 3100,
-  "clean": 3026,
-  "clean_max": 3100,
-  "health": 5,
-  "mood": 969,
-  "mood_max": 1000,
-  "is_hungry": false,
-  "is_dirty": false,
-  "is_sick": false
-}
-```
-
-## CLI 命令
-
-```bash
-# 状态查询
-.venv/bin/python -m src.qq_pet.cli status      # 宠物状态概览
-.venv/bin/python -m src.qq_pet.cli info         # 详细信息（等级/成长/属性）
-.venv/bin/python -m src.qq_pet.cli inventory    # 背包物品
-
-# 养护操作
-.venv/bin/python -m src.qq_pet.cli feed         # 喂食（+1000 饥饿值）
-.venv/bin/python -m src.qq_pet.cli bath         # 洗澡（+1000 清洁值）
-.venv/bin/python -m src.qq_pet.cli play         # 逗玩（+100 心情值）
-.venv/bin/python -m src.qq_pet.cli feed --amount 2000  # 指定数量
-
-# 医疗
-.venv/bin/python -m src.qq_pet.cli diagnose     # 疾病诊断
-.venv/bin/python -m src.qq_pet.cli heal         # 自动治病（匹配背包药物）
-
-# 一键养护
-.venv/bin/python -m src.qq_pet.cli auto         # 按优先级自动处理所有问题
-
-# 数据管理
-.venv/bin/python -m src.qq_pet.cli backup       # 备份数据文件
-.venv/bin/python -m src.qq_pet.cli raw          # 查看原始数据（调试）
-```
-
-## Agnet Skill
-
-<img width="280" alt="QQ宠物" src="https://github.com/user-attachments/assets/7fa61a7a-b23f-483f-b071-d297dc393417" />
-
-将 `skills/qq-pet/` 复制到 skill 目录后，AI 助手可通过自然语言管理宠物：
-
-```bash
-cp -r skills/qq-pet ~/.openclaw/skills/
-```
-
-触发关键词：`QQ宠物`、`宠物状态`、`喂食`、`洗澡`、`治病`、`一键养护`
 
 ## 移植版改动
 
@@ -169,11 +156,12 @@ cp -r skills/qq-pet ~/.openclaw/skills/
 | 遥测移除 | 移除 RSA 数据上报、machineId 采集、sysInfo 采集 |
 | Flash 替代 | PepFlash DLL → Ruffle WASM（最新 nightly） |
 | 自动更新 | 禁用远程更新检查 |
-| 存储加密 | 改为明文 JSON（方便 CLI 读写） |
+| 存储加密 | 改为明文 JSON（方便调试） |
 | 截图功能 | PrintScr.exe → macOS `screencapture` |
 | 窗口适配 | 修复透明窗口白框、托盘图标 ICO→PNG |
 | 拖动修复 | 鼠标事件监听提升到 document 级别 |
 | IP 获取 | 修复 Darwin 平台网络接口枚举 |
+| **后端同步** | 新增 FastAPI 后端，支持账号注册/登录、数据持久化、多设备同步 |
 
 ## 游戏机制（逆向所得）
 
@@ -207,25 +195,57 @@ cp -r skills/qq-pet ~/.openclaw/skills/
 | Windows（移植版） | `%APPDATA%/qq-pet-macos/config-macos.json` |
 | Windows（原版） | `%APPDATA%/pet/config.json`（AES 加密） |
 
+**注意**：启用后端同步模式后，数据会存储在 PostgreSQL 数据库中，本地文件仅用作缓存。
+
 ## 项目结构
 
 ```
-workbuddy/
-├── qq-pet-macos/                 # macOS 移植版 Electron 应用
+qqpet_automation/
+├── qq-pet-macos/                 # Electron 桌面应用
 │   ├── main.js                   # 入口（已清理遥测）
 │   ├── package.json
-│   └── src/                      # 源码（从 app.asar 解包修改）
-├── skills/qq-pet/SKILL.md        # OpenClaw Skill 定义
-├── src/qq_pet/                   # Python 管理工具
-│   ├── cli.py                    # CLI 入口
-│   ├── pet_client.py             # 数据客户端
-│   ├── store_reader.py           # electron-store 读写
-│   ├── actions.py                # 养护动作
-│   ├── game_data.py              # 游戏常量（逆向）
-│   └── models.py                 # 数据模型
-├── config.yaml                   # 配置文件
-├── requirements.txt              # Python 依赖
-└── pyproject.toml
+│   └── src/
+│       ├── network/              # 网络层（HTTP API 客户端）
+│       │   ├── api.js            # Axios 封装 + 自动刷新 Token
+│       │   ├── auth.js           # Token 管理
+│       │   └── login/            # 登录窗口
+│       ├── ini/
+│       │   ├── remoteStore.js    # 远程存储实现（HTTP 批量同步）
+│       │   └── pet.js            # 宠物状态管理
+│       └── windows/
+│           └── main/main.js      # 主窗口逻辑
+├── server/                        # FastAPI 后端服务
+│   ├── app/
+│   │   ├── main.py               # FastAPI 入口
+│   │   ├── config.py             # 配置
+│   │   ├── database.py           # SQLAlchemy 引擎
+│   │   ├── models/               # 数据模型
+│   │   │   ├── user.py           # 用户
+│   │   │   ├── pet.py            # 宠物数据
+│   │   │   ├── inventory.py      # 背包
+│   │   │   ├── settings.py       # 设置
+│   │   │   └── session.py        # 会话管理
+│   │   ├── schemas/              # Pydantic 模型
+│   │   └── api/                  # API 路由
+│   │       ├── auth.py           # 认证
+│   │       ├── pet.py            # 宠物 CRUD
+│   │       ├── inventory.py      # 背包 CRUD
+│   │       └── settings.py       # 设置 CRUD
+│   ├── initdb.d/                 # PostgreSQL 初始化脚本
+│   ├── alembic/                  # 数据库迁移
+│   ├── Dockerfile
+│   └── requirements.txt
+├── docker-compose.yml            # 开发环境编排（PostgreSQL + 后端）
+├── .github/
+│   └── workflows/build.yml       # CI/CD（Electron 构建 + 后端测试）
+├── README.md
+├── LICENSE
+├── NOTICE.md
+├── CONTRIBUTING.md
+├── SECURITY.md
+├── CHANGELOG.md
+├── AGENTS.md
+└── REFACTOR_PLAN.md              # 重构计划文档
 ```
 
 ## AI 对话（DeepSeek 接入）
@@ -284,20 +304,6 @@ workbuddy/
 
 ---
 
-## 配置
-
-编辑 `config.yaml`：
-
-```yaml
-store_path: ""                # 留空自动检测
-encryption_key: "aes-256-cbc" # Windows 原版加密密钥
-thresholds:
-  hunger: 720
-  clean: 1080
-  mood: 100
-  health: 5
-```
-
 ## 许可与免责声明
 
 本项目是一个 **个人逆向研究、桌面移植与怀旧存档** 项目，**与腾讯控股有限公司无任何关联，亦未获得其授权**。
@@ -306,7 +312,7 @@ thresholds:
 
 - "QQ"、"QQ宠物" 名称、商标、角色形象、美术与音频资源等知识产权 **归腾讯控股有限公司及其关联方所有**，本项目对其不主张任何权利。
 - 项目所基于的原始 Electron 应用程序 **并非本项目原创**，源自 **公开互联网上流传的 "QQ宠物怀旧服 v1.2.4" 安装包**；本项目仅出于研究、跨平台兼容、隐私加固（移除遥测）、Flash 替代与个人怀旧存档目的进行解包与最小必要修改。
-- 本项目原创部分（逆向分析报告、Python 管理工具、跨平台移植所做的代码修改、构建脚本与文档）按 **MIT 许可证**（见 [LICENSE](./LICENSE)）授权。
+- 本项目原创部分（逆向分析报告、**FastAPI 后端服务**、跨平台移植所做的代码修改、构建脚本与文档）按 **MIT 许可证**（见 [LICENSE](./LICENSE)）授权。
 
 ### 使用限制
 
@@ -316,4 +322,3 @@ thresholds:
 - 若腾讯控股有限公司或其授权代理人认为本项目侵犯其合法权益，请通过 GitHub Issue 与作者联系，作者承诺 **第一时间下架本仓库及构建产物，绝不抗辩**。
 
 完整声明详见 [NOTICE.md](./NOTICE.md) 文件。如希望参与改进，请阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)。
-

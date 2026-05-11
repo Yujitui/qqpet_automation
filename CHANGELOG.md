@@ -2,17 +2,54 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
-版本号说明：跟随上游 QQ 宠物怀旧服的版本（`1.2.4`），项目自身的迭代体现在第三位（`.0`、`.1`...），与上游游戏版本无关。
+---
+
+## 版本号说明：重构后版本号策略：
+- **v2.0.0 开始为"重构版本，对应服务器-客户端架构版本
+- 新特性版本跟随上游 QQ 宠物怀旧服的版本（`1.2.4`），项目自身的迭代体现在第三位
+
+---
 
 ## [Unreleased]
 
-### 修复
-- **Windows 启动后桌宠不显示 / renderer 崩溃（#10）**：回退到 v1.5.0 已验证的 Electron 28 运行时与打包配置，移除 v1.5.1 引入的 Electron 33 升级、V8 堆裁剪和 Chromium 功能裁剪；保留 v1.6.0 的 DeepSeek、商店与专注守护功能代码。
-- 撤回 v1.6.1 rc 中针对 Electron 33 的启动开关、`contextIsolation:false` 和 preload 改写实验，恢复 v1.5.0/v1.6.0 原有窗口隔离模型。
+### 新增
+
+- **服务器-客户端架构重构（v2.0）**：新增 FastAPI 后端服务，实现账号体系、数据持久化与多设备同步
+
+  - **账号系统**：用户名密码注册/登录、JWT Token 认证、refresh token 机制、单点登录踢出（新登录使旧会话失效，客户端通过 HTTP 401 检测）
+  - **数据持久化**：PostgreSQL 数据库存储宠物数据、背包物品、用户设置
+  - **多设备同步**：HTTP PATCH + 1 秒去抖批量同步（RemoteStore 实现）
+  - **开发环境**：Docker Compose 编排（PostgreSQL + 后端服务）
+  - **数据库迁移**：Alembic 迁移脚本
+
+### 变更
+
+- **架构变更**：移除 WebSocket（原空实现），完全使用 HTTP API 进行数据同步
+
+  - 客户端：RemoteStore 使用内存缓存 + 1 秒去抖批量同步
+  - 后端：移除 WebSocket 相关代码
+
+### 清理
+
+- **移除旧代码**：
+  - 删除 Python CLI（`src/`、`tests/`、`config.yaml`、`pyproject.toml`、`requirements.txt`
+  - 删除 OpenClaw Skill 定义（`skills/`）
+  - 删除存档目录（`qq_pet_asar/`，资源已在 `qq-pet-macos/` 中存在）
+- **更新文档**：
+  - README.md、AGENTS.md、NOTICE.md、CONTRIBUTING.md、SECURITY.md
+  - 移除 Python CLI 相关引用
+  - 新增后端服务相关说明
+
+---
+
+## 历史归档
+
+以下是 v1.2.4-clean 到 v1.6.0 的历史变更记录（重构前版本）
 
 ## [1.6.0] - 2026-05-04
 
 ### 新增
+
 - **专注力守护功能（v1，零权限版）**：基于键鼠空闲时间检测，4 类提醒文案全部由 LLM 现编（也支持硬编码降级）
   - 专注/护眼提醒：连续活跃 25 分钟 → 提醒远眺/休息（冷却 20 分钟）
   - 久坐提醒：连续不离开 50 分钟 → 提醒起身（冷却 30 分钟）
@@ -50,6 +87,7 @@
 ## [1.5.0] - 2026-05-04
 
 ### 新增
+
 - **商城功能完整实现**（原版商店窗口只是空壳子，无入口、UI 未渲染、缺购买逻辑）
   - 右键菜单新增「商城」入口
   - 完全重写商品列表 UI（食品/日用品/药品 3 个分类，共 84 件可购买商品），不再依赖丢失的原版美术资源；改用现代卡片式 + emoji 图标 + 暖色琥珀风格
@@ -61,6 +99,7 @@
 ## [1.4.0] - 2026-05-04
 
 ### 新增
+
 - 接入 DeepSeek LLM 生成宠物对话：仅替换 `smallTalk`（日常闲聊）和 `toHeartTolk`（互动撒娇）两类硬编码台词，其余事件反馈保持原样。设置面板新增「AI 对话」标签，提供启用开关、API Key 输入框（密码态）和测试连接按钮。
   - 新增 `src/service/llm.js`：DeepSeek HTTPS 客户端 + 预取队列（每类最多缓存 3 条），异步预取、API 失败时自动降级到硬编码台词
   - 设置 UI 增加 `input` 控件类型（`src/windows/popups/setup/index.html` + `index.css`）
@@ -77,43 +116,52 @@
 - README 增加完整的「AI 对话（DeepSeek 接入）」章节：列出全部 7 个接入场景、启用步骤、模型对比、隐私声明、成本估算、失败回退说明
 
 ### 修复
+
 - 「控制透明浏览器」(urlWindowOpen) 弹出窗口无法关闭：原代码显式调用了 `setClosable(false)` 禁用关闭按钮，改为可关闭，并监听 `closed` 事件联动关闭父控制面板，避免遗留孤儿窗口（[#3](https://github.com/xuemian168/qqpet_automation/issues/3)）
 - 「渔港」/「后室」iframe 内 `<embed src="*.swf">` 在 Windows 上回退到原生 Flash 插件失效：iframe 内文档（`indexOnLine.html`）未注入 Ruffle，外层 `app.html` 的 Ruffle 不会被 iframe 自动继承。改为在两个 `indexOnLine.html` 内直接加载 `../../js/ruffle/ruffle.js` 并配置 `RufflePlayer`，由 Ruffle polyfill `<embed>`（[#2](https://github.com/xuemian168/qqpet_automation/issues/2)）
 
 ## [1.3.2] - 2026-05-01
 
 ### 新增
+
 - Linux x64 / arm64 构建产物（AppImage + tar.gz）
 - 项目许可与社区文件：`LICENSE`（MIT）、`NOTICE.md`（第三方权利声明）、`CONTRIBUTING.md`、`SECURITY.md`、`CHANGELOG.md`
 - GitHub Issue 表单模板：Bug 报告、兼容性问题、功能建议，含 IP 边界与已知现状提示
 
 ### 修复
+
 - Windows 构建步骤强制使用 bash，避免 PowerShell 解析 `-c.extraMetadata.version=VALUE` 时把 `=VALUE` 当文件路径
 - Release artifact 文件名残留 `1.2.4`，改为使用 tag 名作为产物版本号
 
 ## [1.3.1] - 2026-04-19
 
 ### 新增
+
 - 运行时资源完整入库：`swf` / `wasm` 二进制资源、第三方库
 
 ### 修复
+
 - 外部修改 `config-macos.json` 后页面不会自动同步刷新
 - E2E 测试中暴露的 3 个同步缺陷
 
 ### 变更
+
 - 取消对 Synology Drive 冲突目录的版本控制追踪
 
 ## [1.3.0] - 2026-04-09
 
 ### 新增
+
 - Windows 构建支持（NSIS 安装版 + Portable 便携版）
 - 统一的 macOS / Windows CI/CD release 流水线
 
 ### 变更
+
 - Ruffle 集成升级，改进鼠标事件处理
 - README 增补项目细节、截图、演示视频链接
 
 ### 修复
+
 - README 中 macOS Gatekeeper 解除命令的应用路径
 
 ## [1.2.4-clean] - 2026-04-07
@@ -121,6 +169,7 @@
 首个公开版本。基于 QQ 宠物怀旧服 v1.2.4，移除遥测后的 macOS 干净版。
 
 ### 新增
+
 - QQ 宠物怀旧服 v1.2.4 通信协议逆向分析（Express + WebSocket + RSA 上报）
 - macOS 移植版 Electron 应用，移除遥测、设备指纹采集
 - 用 Ruffle WASM 替代 PepFlash DLL
@@ -129,9 +178,12 @@
 - macOS 自动构建 GitHub Action（仅 arm64）
 
 ### 安全
+
 - 移除 RSA 数据上报、`machineId` 与 `sysInfo` 采集
 - 禁用远程自动更新检查
 - 存储改为明文 JSON（方便审计与 CLI 读写）
+
+---
 
 [Unreleased]: https://github.com/xuemian168/qqpet_automation/compare/v1.3.2...HEAD
 [1.3.2]: https://github.com/xuemian168/qqpet_automation/compare/v1.3.1...v1.3.2
