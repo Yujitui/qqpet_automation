@@ -141,47 +141,11 @@ class FocusGuard {
 
   _fireReminder(type, ctx) {
     this._markReminded(type);
-
-    const useLLM =
-      typeof llmService !== "undefined" &&
-      getSys("llmEnabled") &&
-      getSys("llmApiKey");
-
-    const showFallback = () => {
-      const txt = FALLBACK_TEXT[type] || "主人~";
-      openSpeak({
-        data: { type: "text", data: txt, submitText: "好的" },
-        nextActiveStr: "speak",
-      });
-    };
-
-    if (!useLLM) {
-      showFallback();
-      return;
-    }
-
-    let petInfo = {};
-    try {
-      petInfo = typeof getPetInfo === "function" ? getPetInfo() : {};
-    } catch (e) {}
-
-    llmService
-      .generateOnce(type, ctx, petInfo)
-      .then((r) => {
-        if (r?.tolk) {
-          openSpeak({
-            data: {
-              type: "text",
-              data: r.tolk,
-              submitText: r.submitText || "好的",
-            },
-            nextActiveStr: "speak",
-          });
-        } else {
-          showFallback();
-        }
-      })
-      .catch(() => showFallback());
+    const txt = FALLBACK_TEXT[type] || "主人~";
+    openSpeak({
+      data: { type: "text", data: txt, submitText: "好的" },
+      nextActiveStr: "speak",
+    });
   }
 }
 

@@ -53,7 +53,7 @@
 |--------|-----------|
 | **认证方式** | 用户名密码登录，有注册功能 |
 | **多设备登录** | 单点登录，新登录使旧 Token 失效（客户端通过 401 检测） |
-| **设置同步** | `shortcuts`、`stopGrowth` 同步；`llm*`、`focus*` 本地存储 |
+| **设置同步** | `shortcuts`、`stopGrowth` 同步；`focus*` 本地存储 |
 | **服务器地址** | 硬编码默认 `http://localhost:8000`，可通过 electron-store 修改 |
 | **数据同步机制** | **HTTP PATCH + 1秒去抖批量同步**（RemoteStore 实现） |
 | **数据迁移** | 不需要（全新重构项目） |
@@ -231,7 +231,7 @@ qqpet_automation/
 ```
 
 **同步字段**：`shortcuts`, `stop_growth`  
-**本地字段**：`llmEnabled`, `llmApiKey`, `llmModel`, `focusEnabled`, `doNotDisturb`
+**本地字段**：`focusEnabled`, `doNotDisturb`
 
 ## API 端点索引
 

@@ -192,9 +192,6 @@ class RemoteStore {
       startupSelf: false,
       opacity: 1,
       getOption: false,
-      llmEnabled: false,
-      llmApiKey: "",
-      llmModel: "",
       focusEnabled: false,
     };
   }
@@ -289,16 +286,12 @@ class RemoteStore {
       "doNotDisturb",
       "startupSelf",
       "getOption",
-      "llmEnabled",
-      "llmApiKey",
-      "llmModel",
       "focusEnabled",
     ];
 
     if (key.startsWith("sys.")) {
       const field = key.slice(4);
       if (localOnlyFields.includes(field)) return true;
-      if (field.startsWith("llm")) return true;
       if (field.startsWith("focus")) return true;
     }
 
