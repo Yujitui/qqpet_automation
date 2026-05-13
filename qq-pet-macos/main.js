@@ -97,6 +97,7 @@ async function startMainGame() {
 
     // 加载 doMain.js
     console.log("[startMainGame] Loading doMain.js...");
+    delete require.cache[require.resolve("./src/ini/doMain.js")];
     require("./src/ini/doMain.js");
     console.log("[startMainGame] doMain.js loaded");
 

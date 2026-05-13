@@ -87,23 +87,27 @@
             </div>
           </div>
           <div
-            class="childrenIn fcc slider"
+            class="childrenIn fccC buts"
             v-if="stem.type == 'buts' && !stem?.unShow"
             v-show="!stem.control || sysData[stem.value] != 'cantSee'"
-            :style="{
-            opacity:1
-          }"
           >
-            <!-- {{ sysData[stem.value]}} -->
-            <div class="label f1 w100 por sliderLabel fcc tc" cancel>
-              {{stem.label}}
-              <div class="sliderButs f1 w100 fcc">
-                <div
-                  class="sliderButs_submit focusPress not_drag"
-                  @click="setStting(stem)"
-                ></div>
-              </div>
+            <div class="butsBtn focusPress not_drag" @click="setStting(stem)">{{stem.label}}</div>
+          </div>
+          <div
+            class="childrenIn fccC sexButs"
+            v-if="stem.type == 'sexButs'"
+          >
+            <div class="label tc w100 mb8">{{stem.label}}</div>
+            <div class="fcc">
+              <div class="sexBut focusPress not_drag" @click="setSex('GG')">GG</div>
+              <div class="sexBut focusPress not_drag ml16" @click="setSex('MM')">MM</div>
             </div>
+          </div>
+          <div class="childrenIn fC passwordForm" v-if="stem.type == 'passwordForm'">
+            <div class="label tc w100 mb8">{{stem.label}}</div>
+            <input class="apiInput not_drag" type="password" placeholder="旧密码" v-model="oldPassword" />
+            <input class="apiInput not_drag mt8" type="password" placeholder="新密码" v-model="newPassword" />
+            <div class="passwordSubmit focusPress not_drag mt16" @click="submitChangePassword">{{passwordBtnText}}</div>
           </div>
           <div class="childrenIn fC slider" v-if="stem.type == 'input'">
             <div class="label" cancel>{{stem.label}}：</div>

@@ -322,3 +322,73 @@
   border-color: rgba(80, 140, 220, 0.6);
   background: rgba(255, 255, 255, 0.95);
 }
+
+/* 文字按钮（替代原有图标按钮） */
+.butsBtn {
+  width: 100%;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  background-color: #f5f5f5;
+  border: 2px solid #000;
+  border-radius: 8px;
+  color: #000;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.butsBtn:hover {
+  background-color: #e8e8e8;
+  border-color: #000;
+}
+.butsBtn:active {
+  background-color: #d0d0d0;
+  transform: scale(0.98);
+}
+
+/* 性别切换按钮 */
+.sexBut {
+  width: 80px;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  background-color: #f5f5f5;
+  border: 2px solid #000;
+  border-radius: 8px;
+  color: #000;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.sexBut:hover {
+  background-color: #e8e8e8;
+}
+.sexBut:active {
+  background-color: #d0d0d0;
+  transform: scale(0.98);
+}
+
+/* 修改密码表单 */
+.passwordSubmit {
+  width: 100%;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  background-color: #f5f5f5;
+  border: 2px solid #000;
+  border-radius: 8px;
+  color: #000;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.passwordSubmit:hover {
+  background-color: #e8e8e8;
+}
+.passwordSubmit:active {
+  background-color: #d0d0d0;
+  transform: scale(0.98);
+}

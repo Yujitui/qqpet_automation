@@ -102,6 +102,15 @@ async function getCurrentUser() {
   return response.data;
 }
 
+async function changePassword(oldPassword, newPassword) {
+  const api = getApiClient();
+  const response = await api.post("/api/auth/change-password", {
+    old_password: oldPassword,
+    new_password: newPassword
+  });
+  return response.data;
+}
+
 async function getPet() {
   const api = getApiClient();
   const response = await api.get("/api/pet");
@@ -141,6 +150,7 @@ module.exports = {
   register,
   logout,
   getCurrentUser,
+  changePassword,
   getPet,
   initPet,
   updatePet,

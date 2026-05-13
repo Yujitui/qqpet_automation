@@ -21,7 +21,8 @@ from app.schemas.auth import (
     UserCreate,
     Token, 
     UserResponse,
-    Message
+    Message,
+    ChangePasswordRequest
 )
 
 router = APIRouter()
@@ -227,3 +228,21 @@ def refresh_token(
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user=UserResponse.model_validate(user)
     )
+
+
+@router.post("/change-password", response_model=Message)
+def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Any:
+    if not verify_password(request.old_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="原密码错误"
+        )
+    
+    current_user.hashed_password = get_password_hash(request.new_password)
+    db.commit()
+    
+    return Message(message="密码已修改")

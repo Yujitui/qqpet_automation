@@ -40,3 +40,8 @@ class TokenPayload(BaseModel):
 
 class Message(BaseModel):
     message: str
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str

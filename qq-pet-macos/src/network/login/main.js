@@ -1,10 +1,11 @@
-const { BrowserWindow, ipcMain } = require("electron");
+const { BrowserWindow, ipcMain, app } = require("electron");
 const path = require("path");
 const auth = require("../auth");
 const api = require("../api");
 
 let loginWindow = null;
 let onLoginSuccessCallback = null;
+let isLoginSuccess = false; // 标志位：区分登录成功关闭 vs 用户手动关闭
 
 function setOnLoginSuccess(callback) {
   onLoginSuccessCallback = callback;
@@ -15,6 +16,8 @@ function createLoginWindow() {
     loginWindow.focus();
     return loginWindow;
   }
+
+  isLoginSuccess = false; // 重置标志位，注销后关闭登录窗口应退出程序
 
   loginWindow = new BrowserWindow({
     width: 325,
@@ -36,6 +39,11 @@ function createLoginWindow() {
 
   loginWindow.on("closed", () => {
     loginWindow = null;
+    // 如果不是登录成功关闭，且没有其他窗口，立即退出程序
+    if (!isLoginSuccess && BrowserWindow.getAllWindows().length === 0) {
+      app.exit(0);
+    }
+    isLoginSuccess = false; // 重置标志位
   });
 
   return loginWindow;
@@ -57,6 +65,7 @@ async function handleLogin(event, { username, password }) {
     }
 
     if (result.status === "active") {
+      isLoginSuccess = true; // 标记为登录成功，关闭窗口时不退出
       closeLoginWindow();
       if (onLoginSuccessCallback) {
         onLoginSuccessCallback();
