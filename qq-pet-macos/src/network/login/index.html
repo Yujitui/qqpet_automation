@@ -5,306 +5,309 @@
   <title>QQ宠物 - 登录</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: transparent !important;
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 12px;
+      user-select: none;
+    }
+
+    .window {
+      width: 325px;
+      border-radius: 8px 8px 6px 6px;
+      overflow: hidden;
+      box-shadow: rgba(0, 0, 0, 0.4) 0 6px 28px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .titlebar {
+      height: 28px;
+      background: linear-gradient(rgb(0, 88, 238) 0%, rgb(53, 147, 255) 4%, rgb(40, 142, 255) 6%, rgb(18, 125, 255) 8%, rgb(3, 111, 252) 10%, rgb(2, 98, 238) 14%, rgb(0, 87, 229) 20%, rgb(0, 84, 227) 24%, rgb(0, 85, 235) 56%, rgb(0, 91, 245) 66%, rgb(2, 106, 254) 76%, rgb(0, 98, 239) 86%, rgb(0, 82, 214) 92%, rgb(0, 64, 171) 94%, rgb(0, 48, 146) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px 0 10px;
+      -webkit-app-region: drag;
+      flex-shrink: 0;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+    }
+    .titlebar .title-icon {
+      width: 16px;
+      height: 16px;
+      background: #3a8aff;
+      border-radius: 3px;
+      margin-right: 6px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #fff;
+      font-weight: 700;
+    }
+    .titlebar .title {
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      text-shadow: #2f2f2f 1px 1px;
+      letter-spacing: 0.3px;
+      flex: 1;
+      pointer-events: none;
+    }
+    .titlebar .win-btns {
+      -webkit-app-region: no-drag;
+      display: flex;
+      gap: 1px;
+    }
+    .titlebar .win-btns .win-btn {
+      width: 22px;
+      height: 22px;
+      border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 3px;
+      background: transparent;
+      cursor: pointer;
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .login-container {
-      background: white;
-      border-radius: 16px;
-      padding: 32px;
-      width: 340px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    .titlebar .win-btns .win-btn:hover {
+      filter: brightness(120%);
     }
-    .logo {
-      text-align: center;
-      margin-bottom: 24px;
+    .titlebar .win-btns .win-btn:active {
+      filter: brightness(90%);
     }
-    .logo h1 {
-      font-size: 24px;
-      color: #333;
-      margin-bottom: 8px;
+    .titlebar .win-btns .win-btn.min-btn {
+      box-shadow: rgb(70, 70, 255) 0px -1px 2px 1px inset;
+      background-image: radial-gradient(circle at 90% 90%, rgb(0, 84, 233) 0%, rgb(34, 99, 213) 55%, rgb(68, 121, 228) 70%, rgb(163, 187, 236) 90%, white 100%);
     }
-    .logo p {
-      font-size: 13px;
-      color: #888;
+    .titlebar .win-btns .win-btn.min-btn::before {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 13px;
+      height: 2px;
+      width: 8px;
+      background-color: white;
     }
-    .form-group {
-      margin-bottom: 16px;
+    .titlebar .win-btns .win-btn.close-btn {
+      box-shadow: rgb(218, 70, 0) 0px -1px 2px 1px inset;
+      background-image: radial-gradient(circle at 90% 90%, rgb(204, 70, 0) 0%, rgb(220, 101, 39) 55%, rgb(205, 117, 70) 70%, rgb(255, 204, 178) 90%, white 100%);
     }
-    .form-group label {
-      display: block;
-      font-size: 13px;
-      color: #555;
-      margin-bottom: 6px;
+    .titlebar .win-btns .win-btn.close-btn::before {
+      content: "";
+      position: absolute;
+      left: 10px;
+      top: 3px;
+      transform: rotate(45deg);
+      height: 14px;
+      width: 2px;
+      background-color: white;
     }
-    .form-group input {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 14px;
-      transition: border-color 0.2s, box-shadow 0.2s;
+    .titlebar .win-btns .win-btn.close-btn::after {
+      content: "";
+      position: absolute;
+      left: 10px;
+      top: 3px;
+      transform: rotate(-45deg);
+      height: 14px;
+      width: 2px;
+      background-color: white;
     }
-    .form-group input:focus {
-      outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-    .btn {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-    .btn-primary:disabled {
-      opacity: 0.6;
+    .titlebar .win-btns .win-btn.disabled {
+      opacity: 0.5;
       cursor: not-allowed;
-      transform: none;
     }
-    .btn-secondary {
-      background: transparent;
-      color: #667eea;
-      margin-top: 8px;
+
+    .content {
+      background: #ECF6FF;
+      padding: 18px;
     }
-    .btn-secondary:hover {
-      background: rgba(102, 126, 234, 0.05);
+
+    .form-box {
+      border: 1px solid #2F74C5;
+      background: linear-gradient(to bottom, #E4F3FF, #F0F8FF, #F0F8FF, #F0F8FF, #E4F3FF);
+      padding: 16px;
     }
-    .divider {
+
+    .form-group {
+      margin-bottom: 14px;
       display: flex;
       align-items: center;
-      margin: 16px 0;
     }
-    .divider::before, .divider::after {
-      content: "";
-      flex: 1;
-      height: 1px;
-      background: #eee;
-    }
-    .divider span {
-      padding: 0 12px;
+    .form-group label {
+      width: 52px;
+      text-align: left;
+      color: #0e2f6b;
       font-size: 12px;
-      color: #aaa;
+      flex-shrink: 0;
     }
-    .error {
-      background: #fff5f5;
-      color: #c53030;
-      padding: 10px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      margin-bottom: 16px;
+    .form-group input {
+      flex: 1;
+      height: 20px;
+      border: 1px solid #7F9DB9;
+      padding: 0 4px;
+      font-size: 12px;
+      font-family: inherit;
+      background: #fff;
+      color: #333;
+      outline: none;
+    }
+    .form-group input:focus {
+      border-color: #00558E;
+    }
+    .form-group input::placeholder {
+      color: #b0b8c0;
+    }
+
+    .msg {
+      padding: 6px 8px;
+      font-size: 12px;
+      margin-bottom: 10px;
       display: none;
+      line-height: 1.4;
     }
-    .error.show { display: block; }
-    .success {
+    .msg.show { display: block; }
+    .msg.error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+    .msg.success {
       background: #f0fff4;
-      color: #276749;
-      padding: 10px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      margin-bottom: 16px;
-      display: none;
+      border: 1px solid #bbf7d0;
+      color: #166534;
     }
-    .success.show { display: block; }
-    .server-config {
-      margin-bottom: 8px;
+
+    .btn-row {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 2px;
     }
-    .server-config small {
-      color: #888;
-      font-size: 11px;
-    }
-    .toggle {
-      text-align: center;
-      margin-top: 12px;
-    }
-    .toggle a {
-      color: #667eea;
-      text-decoration: none;
-      font-size: 13px;
+    .login-btn {
+      height: 22px;
+      width: 72px;
+      border: 1px solid #00558E;
+      border-radius: 3px;
+      font-size: 12px;
+      font-family: inherit;
       cursor: pointer;
+      color: #000;
+      background: linear-gradient(to bottom, #ffffff, #9FD4FF);
+      letter-spacing: 1px;
     }
-    .toggle a:hover {
-      text-decoration: underline;
+    .login-btn:hover {
+      background: linear-gradient(to bottom, #ffffff, #B9E1FF);
+    }
+    .login-btn:active {
+      background: linear-gradient(to bottom, #97C5EC, #D2F8FD);
+    }
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: #8a9bb5;
+      padding: 10px 0 2px;
     }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <div class="logo">
-      <h1>🐧 QQ宠物</h1>
-      <p>怀旧服 v1.6.1</p>
+  <div class="window">
+    <div class="titlebar">
+      <div class="title">
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span class="title-icon">Q</span>
+          <span>QQ宠物 - 登录</span>
+        </span>
+      </div>
+      <div class="win-btns">
+        <div class="win-btn min-btn disabled" title="最小化"></div>
+        <div class="win-btn min-btn disabled" style="opacity:0.5;cursor:not-allowed;" title="最大化"></div>
+        <div class="win-btn close-btn" id="closeBtn" title="关闭"></div>
+      </div>
     </div>
 
-    <div id="error" class="error"></div>
-    <div id="success" class="success"></div>
+    <div class="content">
+      <div class="form-box">
+        <div id="msg" class="msg"></div>
 
-    <form id="loginForm" style="display: block;">
-      <div class="form-group">
-        <label>用户名</label>
-        <input type="text" id="loginUsername" placeholder="请输入用户名" required>
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="username">用户名</label>
+            <input type="text" id="username" placeholder="请输入用户名" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="password">密码</label>
+            <input type="password" id="password" placeholder="请输入密码" required autocomplete="current-password">
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="login-btn" id="loginBtn">登 录</button>
+          </div>
+        </form>
       </div>
-      <div class="form-group">
-        <label>密码</label>
-        <input type="password" id="loginPassword" placeholder="请输入密码" required>
-      </div>
-      <div class="form-group server-config">
-        <label>服务器地址</label>
-        <input type="text" id="serverUrl" placeholder="http://localhost:8000">
-        <small>默认为本地服务器，远程登录请修改地址</small>
-      </div>
-      <button type="submit" class="btn btn-primary" id="loginBtn">登录</button>
-      <div class="toggle">
-        <a id="showRegister">没有账号？立即注册</a>
-      </div>
-    </form>
 
-    <form id="registerForm" style="display: none;">
-      <div class="form-group">
-        <label>用户名</label>
-        <input type="text" id="regUsername" placeholder="请输入用户名" required>
-      </div>
-      <div class="form-group">
-        <label>密码</label>
-        <input type="password" id="regPassword" placeholder="请输入密码" required>
-      </div>
-      <div class="form-group">
-        <label>确认密码</label>
-        <input type="password" id="regPassword2" placeholder="请再次输入密码" required>
-      </div>
-      <div class="form-group server-config">
-        <label>服务器地址</label>
-        <input type="text" id="regServerUrl" placeholder="http://localhost:8000">
-      </div>
-      <button type="submit" class="btn btn-primary" id="registerBtn">注册</button>
-      <div class="toggle">
-        <a id="showLogin">已有账号？立即登录</a>
-      </div>
-    </form>
+      <div class="footer">怀旧服 v1.6.1</div>
+    </div>
   </div>
 
   <script>
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    const errorDiv = document.getElementById('error');
-    const successDiv = document.getElementById('success');
-    const showRegister = document.getElementById('showRegister');
-    const showLogin = document.getElementById('showLogin');
+    const form = document.getElementById('loginForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
     const loginBtn = document.getElementById('loginBtn');
-    const registerBtn = document.getElementById('registerBtn');
+    const msgDiv = document.getElementById('msg');
+    const closeBtn = document.getElementById('closeBtn');
 
-    async function init() {
-      const serverUrl = await window.loginAPI.getServerUrl();
-      document.getElementById('serverUrl').value = serverUrl;
-      document.getElementById('regServerUrl').value = serverUrl;
-    }
-    init();
-
-    function showError(msg) {
-      errorDiv.textContent = msg;
-      errorDiv.classList.add('show');
-      successDiv.classList.remove('show');
-    }
-
-    function showSuccess(msg) {
-      successDiv.textContent = msg;
-      successDiv.classList.add('show');
-      errorDiv.classList.remove('show');
-    }
-
-    function setLoading(btn, loading) {
-      if (loading) {
-        btn.disabled = true;
-        btn.textContent = btn.id === 'loginBtn' ? '登录中...' : '注册中...';
-      } else {
-        btn.disabled = false;
-        btn.textContent = btn.id === 'loginBtn' ? '登录' : '注册';
-      }
-    }
-
-    showRegister.addEventListener('click', () => {
-      loginForm.style.display = 'none';
-      registerForm.style.display = 'block';
-      errorDiv.classList.remove('show');
-      successDiv.classList.remove('show');
+    closeBtn.addEventListener('click', () => {
+      window.loginAPI.closeWindow();
     });
 
-    showLogin.addEventListener('click', () => {
-      loginForm.style.display = 'block';
-      registerForm.style.display = 'none';
-      errorDiv.classList.remove('show');
-      successDiv.classList.remove('show');
-    });
+    function showMsg(text, type) {
+      msgDiv.textContent = text;
+      msgDiv.className = 'msg show ' + type;
+    }
 
-    loginForm.addEventListener('submit', async (e) => {
+    function hideMsg() {
+      msgDiv.className = 'msg';
+    }
+
+    function setLoading(loading) {
+      loginBtn.disabled = loading;
+      loginBtn.textContent = loading ? '登录中...' : '登 录';
+    }
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      setLoading(loginBtn, true);
-      errorDiv.classList.remove('show');
+      hideMsg();
+      setLoading(true);
 
       try {
         const result = await window.loginAPI.login({
-          username: document.getElementById('loginUsername').value,
-          password: document.getElementById('loginPassword').value,
-          serverUrl: document.getElementById('serverUrl').value,
+          username: usernameInput.value.trim(),
+          password: passwordInput.value,
         });
 
         if (result.success) {
-          showSuccess('登录成功，正在启动...');
+          if (result.status === 'created') {
+            showMsg(result.message || '账号已注册，请联系管理员激活', 'success');
+            passwordInput.value = '';
+          }
         } else {
-          showError(result.message);
+          showMsg(result.message || '登录失败，请稍后重试', 'error');
         }
       } catch (err) {
-        showError(err.message || '登录失败');
+        showMsg('无法连接到服务器，请检查服务器是否已启动', 'error');
       } finally {
-        setLoading(loginBtn, false);
-      }
-    });
-
-    registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const password = document.getElementById('regPassword').value;
-      const password2 = document.getElementById('regPassword2').value;
-
-      if (password !== password2) {
-        showError('两次输入的密码不一致');
-        return;
-      }
-
-      setLoading(registerBtn, true);
-      errorDiv.classList.remove('show');
-
-      try {
-        const result = await window.loginAPI.register({
-          username: document.getElementById('regUsername').value,
-          password: password,
-          serverUrl: document.getElementById('regServerUrl').value,
-        });
-
-        if (result.success) {
-          showSuccess('注册成功！请登录');
-          setTimeout(() => showLogin.click(), 1500);
-        } else {
-          showError(result.message);
-        }
-      } catch (err) {
-        showError(err.message || '注册失败');
-      } finally {
-        setLoading(registerBtn, false);
+        setLoading(false);
       }
     });
   </script>

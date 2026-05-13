@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -14,7 +15,7 @@ from app.core.security import (
     create_refresh_token,
     decode_token
 )
-from app.models import User, Session as SessionModel, PetData, PetInventory, UserSettings
+from app.models import User, Session as SessionModel, PetData, PetInventory
 from app.schemas.auth import (
     UserLogin, 
     UserCreate,
@@ -44,7 +45,7 @@ def register(
         username=form_data.username,
         email=form_data.email,
         hashed_password=hashed_password,
-        is_active=True,
+        is_active=False,
         is_admin=False
     )
     db.add(user)
@@ -54,17 +55,38 @@ def register(
     return UserResponse.model_validate(user)
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login")
 def login(
     form_data: UserLogin,
     db: Session = Depends(get_db)
 ) -> Any:
     user = db.query(User).filter(User.username == form_data.username).first()
     
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if not user:
+        hashed_password = get_password_hash(form_data.password)
+        user = User(
+            username=form_data.username,
+            hashed_password=hashed_password,
+            is_active=False,
+            is_admin=False
+        )
+        db.add(user)
+        db.commit()
+        return JSONResponse(
+            status_code=status.HTTP_201_CREATED,
+            content={"status": "created", "message": "账号已注册，请联系管理员激活"}
+        )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="账号未激活，请联系管理员",
+        )
+    
+    if not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误",
+            detail="密码错误",
             headers={"WWW-Authenticate": "Bearer"},
         )
     

@@ -22,7 +22,6 @@ const BATCH_INTERVAL = 1000;
 const pendingUpdates = {
   pet: null,
   inventory: null,
-  settings: null,
 };
 
 const camelToSnake = (str) => {
@@ -145,20 +144,32 @@ class RemoteStore {
 
     try {
       console.log("RemoteStore: Fetching data from server...");
-      const [petData, inventoryData, settingsData] = await Promise.all([
-        api.getPet().catch((e) => { console.log("getPet failed:", e?.message); return null; }),
+      let petData = await api.getPet().catch((e) => {
+        if (e?.response?.status === 404) return null;
+        throw e;
+      });
+
+      if (!petData) {
+        console.log("RemoteStore: No pet data, initializing...");
+        try {
+          await api.initPet();
+          petData = await api.getPet();
+        } catch (initErr) {
+          console.error("Pet init failed:", initErr?.message);
+          throw initErr;
+        }
+      }
+
+      const [inventoryData] = await Promise.all([
         api.getInventory().catch((e) => { console.log("getInventory failed:", e?.message); return null; }),
-        api.getSettings().catch((e) => { console.log("getSettings failed:", e?.message); return null; }),
       ]);
 
-      console.log("RemoteStore: Data fetched, petData:", petData ? "has data" : "null");
+      console.log("RemoteStore: Data fetched");
       
       cache.pet = this.convertPetToLocal(petData);
       cache.cache = this.convertInventoryToLocal(inventoryData);
-      cache.sys = this.convertSettingsToLocal(settingsData);
-      cache.localSettings = localStore.get("sys") || {};
-
-      cache.sys = { ...cache.sys, ...cache.localSettings };
+      cache.sys = this.loadLocalSettings();
+      cache.localSettings = cache.sys;
 
       isInitialized = true;
       this.isRemoteMode = true;
@@ -168,12 +179,32 @@ class RemoteStore {
       this.isRemoteMode = false;
       cache.pet = this.convertPetToLocal(null);
       cache.cache = this.convertInventoryToLocal(null);
-      cache.sys = this.convertSettingsToLocal(null);
-      cache.localSettings = localStore.get("sys") || {};
-      cache.sys = { ...cache.sys, ...cache.localSettings };
+      cache.sys = this.loadLocalSettings();
+      cache.localSettings = cache.sys;
       isInitialized = true;
       console.log("RemoteStore initialized (local mode fallback)");
     }
+  }
+
+  loadLocalSettings() {
+    return localStore.get("sys") || {
+      doNotDisturb: false,
+      startupSelf: false,
+      opacity: 1,
+      getOption: false,
+      llmEnabled: false,
+      llmApiKey: "",
+      llmModel: "",
+      focusEnabled: false,
+    };
+  }
+
+  getLastPosition() {
+    return localStore.get("lastPos") || { lastX: 10, lastY: 600 };
+  }
+
+  saveLastPosition(x, y) {
+    localStore.set("lastPos", { lastX: x, lastY: y });
   }
 
   convertPetToLocal(apiData) {
@@ -191,8 +222,6 @@ class RemoteStore {
       charm: 215,
       strong: 123,
       onLineTime: 0,
-      lastX: 10,
-      lastY: 600,
       yb: 300,
       lastLoginTime: 0,
       onlineDataTime: 0,
@@ -210,14 +239,16 @@ class RemoteStore {
       mood: 1000,
     };
 
+    const lastPos = this.getLastPosition();
+
     if (!apiData) {
       return {
-        info: { ...defaultInfo },
+        info: { ...defaultInfo, lastX: lastPos.lastX, lastY: lastPos.lastY },
         maxInfo: { ...defaultMaxInfo },
         activeOption: { work: null, study: null, trip: null, ill: null, die: null },
         activeValue: { work: {}, study: { chinese: 0, mathematics: 0, politics: 0, music: 0, art: 0, manner: 0, pe: 0, labouring: 0, wushu: 0 } },
         otherOptions: { pinkDiamond: false, growth: 0, growthValue: 0, growthValue_next: 0, pinkDiamondLevel: 0, pinkDiamondBeginDate: 0, pinkDiamondExpirationDate: 0, sweetHeart: false },
-        fishing: { fishes: [], harvestfish: 0, allvipcnt: 0, canusecnt: 0, power: 0, needTime: 0 },
+        fishing: { fishes: [], harvestfish: 0, allvipcnt: 0, canusecnt: 0, power: 30, needTime: 1 },
         listenMain: {},
       };
     }
@@ -226,12 +257,12 @@ class RemoteStore {
     const apiMaxInfo = convertKeysToCamel(apiData.max_info) || {};
 
     return {
-      info: { ...defaultInfo, ...apiInfo },
+      info: { ...defaultInfo, ...apiInfo, lastX: lastPos.lastX, lastY: lastPos.lastY },
       maxInfo: { ...defaultMaxInfo, ...apiMaxInfo },
       activeOption: apiData.active_option || { work: null, study: null, trip: null, ill: null, die: null },
       activeValue: apiData.active_value || { work: {}, study: { chinese: 0, mathematics: 0, politics: 0, music: 0, art: 0, manner: 0, pe: 0, labouring: 0, wushu: 0 } },
       otherOptions: apiData.other_options || { pinkDiamond: false, growth: 0, growthValue: 0, growthValue_next: 0, pinkDiamondLevel: 0, pinkDiamondBeginDate: 0, pinkDiamondExpirationDate: 0, sweetHeart: false },
-      fishing: apiData.fishing || { fishes: [], harvestfish: 0, allvipcnt: 0, canusecnt: 0, power: 0, needTime: 0 },
+      fishing: apiData.fishing || { fishes: [], harvestfish: 0, allvipcnt: 0, canusecnt: 0, power: 30, needTime: 1 },
       listenMain: {},
     };
   }
@@ -239,57 +270,25 @@ class RemoteStore {
   convertInventoryToLocal(apiData) {
     if (!apiData) {
       return {
-        food: ["_102010001-2", "_102010012-3"],
-        commodity: ["_102020007-1", "_102020012-2", "_10021005-2"],
-        medicine: ["_60001-2"],
-        background: [],
+        store: { food: [], commodity: [], medicine: [], background: [] },
       };
     }
     return {
-      food: apiData.food || [],
-      commodity: apiData.commodity || [],
-      medicine: apiData.medicine || [],
-      background: apiData.background || [],
-    };
-  }
-
-  convertSettingsToLocal(apiData) {
-    const defaultSystem = {
-      clip: true,
-      doNotDisturb: false,
-      startupSelf: false,
-      shortcuts: {
-        screenshot: ["ALT", "Q"],
-        openStting: ["ALT", "D"],
-        god: ["ALT", "."],
+      store: {
+        food: apiData.food || [],
+        commodity: apiData.commodity || [],
+        medicine: apiData.medicine || [],
+        background: apiData.background || [],
       },
-      opacity: 1,
-      getOption: false,
-      floatStyle: false,
-    };
-
-    if (!apiData) {
-      return {
-        ...defaultSystem,
-        stopGrowth: false,
-      };
-    }
-
-    return {
-      ...defaultSystem,
-      shortcuts: apiData.shortcuts || defaultSystem.shortcuts,
-      stopGrowth: apiData.stop_growth || false,
     };
   }
 
   isLocalKey(key) {
     const localOnlyFields = [
       "opacity",
-      "clip",
       "doNotDisturb",
       "startupSelf",
       "getOption",
-      "floatStyle",
       "llmEnabled",
       "llmApiKey",
       "llmModel",
@@ -372,10 +371,10 @@ class RemoteStore {
         this.setNestedValue(cache.cache, subKey, value);
       }
       pendingUpdates.inventory = {
-        food: cache.cache.food || [],
-        commodity: cache.cache.commodity || [],
-        medicine: cache.cache.medicine || [],
-        background: cache.cache.background || [],
+        food: cache.cache.store?.food || [],
+        commodity: cache.cache.store?.commodity || [],
+        medicine: cache.cache.store?.medicine || [],
+        background: cache.cache.store?.background || [],
       };
       this.scheduleSync();
     } else if (mainKey === "sys") {
@@ -385,12 +384,7 @@ class RemoteStore {
       } else {
         this.setNestedValue(cache.sys, subKey, value);
       }
-      pendingUpdates.settings = {
-        shortcuts: cache.sys.shortcuts || {},
-        stop_growth: cache.sys.stopGrowth || false,
-      };
       this.saveLocalSettings();
-      this.scheduleSync();
     } else {
       localStore.set(key, value);
     }
@@ -437,18 +431,6 @@ class RemoteStore {
         console.log("[syncPending] Inventory sync succeeded");
       } catch (e) {
         console.log("[syncPending] Inventory sync failed:", e.message);
-      }
-    }
-
-    if (pendingUpdates.settings) {
-      const data = pendingUpdates.settings;
-      console.log("[syncPending] Syncing settings data...");
-      try {
-        await api.updateSettings(data);
-        pendingUpdates.settings = null;
-        console.log("[syncPending] Settings sync succeeded");
-      } catch (e) {
-        console.log("[syncPending] Settings sync failed:", e.message);
       }
     }
   }

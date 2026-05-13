@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import engine, Base
-from app.api import auth, pet, inventory, settings as settings_api
+from app.api import auth, pet, inventory
 
 Base.metadata.create_all(bind=engine)
 
@@ -24,7 +24,6 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["认证"])
 app.include_router(pet.router, prefix="/api/pet", tags=["宠物数据"])
 app.include_router(inventory.router, prefix="/api/pet/inventory", tags=["背包"])
-app.include_router(settings_api.router, prefix="/api/pet/settings", tags=["设置"])
 
 
 @app.get("/")

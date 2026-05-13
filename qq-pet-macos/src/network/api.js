@@ -72,9 +72,12 @@ function getApiClient() {
 async function login(username, password) {
   const api = getApiClient();
   const response = await api.post("/api/auth/login", { username, password });
+  if (response.status === 201) {
+    return { status: "created", message: response.data.message };
+  }
   const { access_token, refresh_token, user } = response.data;
   auth.setTokens(access_token, refresh_token, user);
-  return { access_token, refresh_token, user };
+  return { status: "active", access_token, refresh_token, user };
 }
 
 async function register(username, password, email = null) {
@@ -105,6 +108,15 @@ async function getPet() {
   return response.data;
 }
 
+async function initPet(options = {}) {
+  const api = getApiClient();
+  const params = {};
+  if (options.reset) params.reset = 1;
+  if (options.sex) params.sex = options.sex;
+  const response = await api.post("/api/pet/init", null, { params });
+  return response.data;
+}
+
 async function updatePet(data) {
   const api = getApiClient();
   const response = await api.patch("/api/pet", data);
@@ -123,18 +135,6 @@ async function updateInventory(data) {
   return response.data;
 }
 
-async function getSettings() {
-  const api = getApiClient();
-  const response = await api.get("/api/pet/settings");
-  return response.data;
-}
-
-async function updateSettings(data) {
-  const api = getApiClient();
-  const response = await api.patch("/api/pet/settings", data);
-  return response.data;
-}
-
 module.exports = {
   getApiClient,
   login,
@@ -142,9 +142,8 @@ module.exports = {
   logout,
   getCurrentUser,
   getPet,
+  initPet,
   updatePet,
   getInventory,
   updateInventory,
-  getSettings,
-  updateSettings,
 };

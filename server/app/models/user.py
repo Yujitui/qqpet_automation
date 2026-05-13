@@ -19,5 +19,4 @@ class User(Base):
 
     pet_data = relationship("PetData", back_populates="user", uselist=False)
     inventory = relationship("PetInventory", back_populates="user", uselist=False)
-    settings = relationship("UserSettings", back_populates="user", uselist=False)
     sessions = relationship("Session", back_populates="user")

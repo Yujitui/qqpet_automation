@@ -2,7 +2,7 @@
 var e={},
 sendBus=p=>{window.electronAPI.store_h_bus(p)};
 
-const ICON_MAP = {
+const FALLBACK_ICON = {
   food: "🍖",
   commodity: "🧴",
   medicine: "💊",
@@ -65,7 +65,9 @@ const app = {
       window.electronAPI.store_h_listGoods({type: value});
     },
     iconFor(item){
-      return ICON_MAP[item?.type] || "📦";
+      if (!item?.type || !item?.key) return FALLBACK_ICON[item?.type] || "📦";
+      const fallback = FALLBACK_ICON[item.type] || "📦";
+      return `<img src="../assets/img_res/${item.type}/${item.key}.gif" class="item-icon" alt="" onerror="this.outerHTML='${fallback}'">`;
     },
     buy(item){
       if(!item?.keyName || !item?.type) return;

@@ -9,7 +9,7 @@ from alembic import context
 
 from app.database import Base
 from app.config import settings
-from app.models import User, PetData, PetInventory, UserSettings, Session
+from app.models import User, PetData, PetInventory, Session
 
 config = context.config
 

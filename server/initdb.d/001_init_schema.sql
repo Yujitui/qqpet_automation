@@ -67,20 +67,6 @@ CREATE TABLE IF NOT EXISTS pet_inventory (
 
 CREATE INDEX IF NOT EXISTS idx_pet_inventory_user_id ON pet_inventory(user_id);
 
--- 用户设置表
-CREATE TABLE IF NOT EXISTS user_settings (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    
-    shortcuts JSONB DEFAULT '{}',
-    stop_growth BOOLEAN DEFAULT FALSE,
-    
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_user_settings_user_id ON user_settings(user_id);
-
 -- 会话表
 CREATE TABLE IF NOT EXISTS sessions (
     id SERIAL PRIMARY KEY,

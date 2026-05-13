@@ -17,8 +17,10 @@ function createLoginWindow() {
   }
 
   loginWindow = new BrowserWindow({
-    width: 400,
-    height: 480,
+    width: 325,
+    height: 280,
+    frame: false,
+    transparent: true,
     resizable: false,
     minimizable: false,
     maximizable: false,
@@ -46,48 +48,45 @@ function closeLoginWindow() {
   }
 }
 
-async function handleLogin(event, { username, password, serverUrl }) {
+async function handleLogin(event, { username, password }) {
   try {
-    if (serverUrl && serverUrl !== auth.getServerUrl()) {
-      auth.setServerUrl(serverUrl);
-    }
-
     const result = await api.login(username, password);
-    closeLoginWindow();
-    
-    if (onLoginSuccessCallback) {
-      onLoginSuccessCallback();
+
+    if (result.status === "created") {
+      return { success: true, status: "created", message: result.message || "账号已注册，请联系管理员激活" };
     }
-    
-    return { success: true, user: result.user };
+
+    if (result.status === "active") {
+      closeLoginWindow();
+      if (onLoginSuccessCallback) {
+        onLoginSuccessCallback();
+      }
+      return { success: true, status: "active" };
+    }
+
+    return { success: false, message: "未知错误" };
   } catch (error) {
-    const message = error.response?.data?.detail || error.message || "登录失败";
-    return { success: false, message };
+    if (!error.response) {
+      return { success: false, message: "无法连接到服务器，请检查服务器是否已启动" };
+    }
+    const status = error.response.status;
+    if (status === 403) {
+      return { success: false, message: "账号未激活，请联系管理员" };
+    }
+    if (status === 401) {
+      return { success: false, message: "密码错误" };
+    }
+    return { success: false, message: "登录失败，请稍后重试" };
   }
 }
 
-async function handleRegister(event, { username, password, email, serverUrl }) {
-  try {
-    if (serverUrl && serverUrl !== auth.getServerUrl()) {
-      auth.setServerUrl(serverUrl);
-    }
-
-    await api.register(username, password, email);
-    return { success: true };
-  } catch (error) {
-    const message = error.response?.data?.detail || error.message || "注册失败";
-    return { success: false, message };
-  }
-}
-
-function handleGetServerUrl() {
-  return auth.getServerUrl();
+function handleCloseWindow() {
+  closeLoginWindow();
 }
 
 function setupIpcHandlers() {
   ipcMain.handle("login:login", handleLogin);
-  ipcMain.handle("login:register", handleRegister);
-  ipcMain.handle("login:getServerUrl", handleGetServerUrl);
+  ipcMain.handle("login:closeWindow", handleCloseWindow);
 }
 
 module.exports = {
