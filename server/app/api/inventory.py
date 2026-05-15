@@ -41,7 +41,7 @@ def update_inventory(
     inventory = get_inventory(db, current_user.id)
     update_data = updates.model_dump(exclude_unset=True)
 
-    items = inventory.items or {}
+    items = dict(inventory.items or {})
 
     for key, value in update_data.items():
         if value is not None:

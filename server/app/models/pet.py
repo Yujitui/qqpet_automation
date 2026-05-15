@@ -37,6 +37,11 @@ class PetData(Base):
     max_next_growth = Column(Integer, default=100)
     max_stop_growth = Column(Boolean, default=False)
     
+    public_uid = Column(String(12), unique=True, nullable=False, index=True)
+    marriage_status = Column(String(20), default="single")
+    spouse_uid = Column(String(12), nullable=True)
+    intimacy = Column(Integer, default=0)
+
     active_option = Column(JSON, default={})
     active_value = Column(JSON, default={})
     other_options = Column(JSON, default={})

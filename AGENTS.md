@@ -43,6 +43,8 @@
 │  │           SQLAlchemy ORM + PostgreSQL            │   │         │
 │  │  - users, pet_data, pet_inventory, user_settings │   │         │
 │  │  - sessions (用于单点登录踢出，客户端通过 401 检测) │  │         │
+│  │  - friends (用户级好友)                           │   │         │
+│  │  - pet_marriages (宠物婚姻历史)                   │   │         │
 │  └─────────────────────────────────────────────────┘   │         │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -55,7 +57,7 @@
 | **多设备登录** | 单点登录，新登录使旧 Token 失效（客户端通过 401 检测） |
 | **设置同步** | `shortcuts`、`stopGrowth` 同步；`focus*` 本地存储 |
 | **服务器地址** | 硬编码默认 `http://localhost:8000`，可通过 electron-store 修改 |
-| **数据同步机制** | **HTTP PATCH + 1秒去抖批量同步**（RemoteStore 实现） |
+| **数据同步机制** | **HTTP PATCH + 1秒去抖批量同步**（RemoteStore 实现），WS 优先写入 + HTTP 兜底（双轨策略，稳定后移除 HTTP 分支） |
 | **数据迁移** | 不需要（全新重构项目） |
 | **Python CLI** | 完全移除 |
 | **qq_pet_asar/** | 完全移除（存档参考目录） |
@@ -103,11 +105,13 @@ qqpet_automation/
 
 | 表名 | 说明 | 主要字段 |
 |------|------|----------|
-| `users` | 用户表 | `id`, `username`, `email`, `hashed_password`, `is_active`, `is_admin` (占位符，未使用) |
-| `pet_data` | 宠物数据表 | `id`, `user_id`, `info_*` (宠物属性), `max_*` (最大属性), `active_option`, `active_value`, `other_options`, `fishing` |
+| `users` | 用户表 | `id`, `username`, `nickname` (唯一，默认=username), `email`, `hashed_password`, `is_active`, `is_admin` (占位符，未使用) |
+| `pet_data` | 宠物数据表 | `id`, `user_id`, `info_*` (宠物属性), `max_*` (最大属性), `public_uid` (12位hex), `marriage_status`, `spouse_uid`, `intimacy`, `active_option`, `active_value`, `other_options`, `fishing` |
 | `pet_inventory` | 背包表 | `id`, `user_id`, `items` (JSONB: food, commodity, medicine, background) |
 | `user_settings` | 用户设置表 | `id`, `user_id`, `shortcuts` (JSONB), `stop_growth` |
 | `sessions` | 会话表 | `id`, `user_id`, `token_jti`, `is_active`, `expires_at` |
+| `friends` | 好友关系表 | `id`, `user_id`, `friend_user_id`, `status` (pending/accepted/blocked) |
+| `pet_marriages` | 宠物婚姻表 | `id`, `pet_a_uid`, `pet_b_uid`, `user_a_id`, `user_b_id`, `status` (active/divorced/widowed/annulled), `intimacy` |
 
 ### 宠物数据结构
 
@@ -314,13 +318,16 @@ pytest
 
 - **Electron 版本锁定 v28** - Electron 33 导致回归问题（在 v1.6.1 中已回退），请使用 v28 + electron-builder v24
 - **无代码检查/类型检查** - 不存在 eslint、ruff、mypy 或 prettier 配置。只有 pytest 用于测试。
-- **数据同步机制** - HTTP PATCH + 1秒去抖批量同步（RemoteStore 实现），WebSocket 已移除
+- **数据同步机制** - HTTP PATCH + 1秒去抖批量同步（RemoteStore 实现），WS 优先写入 + HTTP 兜底（双轨策略，稳定后移除 HTTP 分支）
 - **单点登录踢出** - 新登录使旧会话 `is_active=false`，客户端通过 HTTP 401 检测并刷新 Token，刷新失败则显示登录窗口
 - **存储方案** - 运行时依赖内存（RemoteStore.cache），不再使用 `fs.watch` 监听本地文件
 - **CI 触发条件** - 仅在 `v*` 标签或 `workflow_dispatch` 时构建
 - **macOS 未签名应用** - 需要执行：`sudo xattr -rd com.apple.quarantine /Applications/QQ宠物.app`
 - **面向用户的语言** - 所有 README 和文档均使用**中文**
 - **服务器地址配置** - 硬编码默认 `http://localhost:8000`，可通过 electron-store 修改
+- **SQLAlchemy JSON 列必须新建 dict 赋值** - SQLAlchemy 2.0 `JSON` 列不支持原地修改检测（`items[key]=v`）。必须用 `dict(existing)` 创建副本再赋值：`new = dict(obj.json_col or {}); new[k]=v; obj.json_col = new`
+- **register 已改 is_active=True** - 原代码注册用户标记为 `is_active=False` 需管理员激活。为方便开发已移除该限制，新注册用户自动激活
+- **右键菜单动态替换改为 value 标识** - 原 `changeMenu` 消息使用硬编码数组索引（如 `[4]`、`[3,0]`），添加菜单项后索引偏移导致替换错位。已重构为按 `targetValue`（菜单项的 `value` 字段）搜索替换，`l(targetValue, newItem)` 替代 `l(newItem, positionArray)`，新增菜单不再需要同步更新索引
 
 ## 代码规范
 
@@ -333,7 +340,7 @@ pytest
 
 - `.github/workflows/build.yml` - CI/CD 在 `v*` 标签时构建 macOS/Windows/Linux 版本 + 后端测试
 - `server/app/main.py` - FastAPI 入口
-- `server/app/models/` - SQLAlchemy 数据模型
+- `server/app/models/` - SQLAlchemy 数据模型（含 PetData、Friend、PetMarriage）
 - `server/app/api/` - API 路由
 - `server/initdb.d/` - PostgreSQL 初始化脚本（开发环境）
 - `docs/API.md` - 完整 API 接口文档

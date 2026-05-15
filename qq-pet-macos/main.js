@@ -53,6 +53,8 @@ if (initData?.NODE_TOOL && typeof initData?.NODE_TOOL === "string") {
 const auth = require("./src/network/auth");
 const loginManager = require("./src/network/login/main");
 const remoteStore = require("./src/ini/remoteStore");
+const wsClient = require("./src/network/wsClient");
+const friendsManager = require("./src/windows/popups/friends/main");
 
 // 阻止自动退出：所有窗口关闭后继续运行（托盘图标应用需要）
 app.on("window-all-closed", () => {
@@ -85,6 +87,15 @@ async function startMainGame() {
     await remoteStore.init();
     console.log("[startMainGame] RemoteStore ready, isRemoteMode:", remoteStore.isRemoteMode);
 
+    // 建立 WebSocket 连接
+    console.log("[startMainGame] Connecting WebSocket...");
+    wsClient.connect();
+
+    // 注册 WS 同步推送监听
+    wsClient.on("sync.", (msg) => {
+      remoteStore.handleWsPush(msg);
+    });
+
     // 加载 init.js
     console.log("[startMainGame] Loading init.js...");
     require("./src/ini/init.js");
@@ -112,6 +123,7 @@ async function startMainGame() {
 
 const createWindow = async () => {
   loginManager.setupIpcHandlers();
+  friendsManager.setupIpcHandlers();
 
   loginManager.setOnLoginSuccess(() => {
     console.log("Login success, starting main game...");
@@ -120,11 +132,13 @@ const createWindow = async () => {
 
   global.onAuthRequired = () => {
     console.log("Auth required, showing login window");
+    wsClient.disconnect();
     loginManager.createLoginWindow();
   };
 
   global.onKicked = (reason) => {
     console.log("Kicked from server:", reason);
+    wsClient.disconnect();
     loginManager.createLoginWindow();
   };
 

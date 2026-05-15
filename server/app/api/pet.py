@@ -1,12 +1,14 @@
 import random
+import uuid
 from datetime import datetime
 from typing import Any, Optional, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user
-from app.models import User, PetData, PetInventory
+from app.models import User, PetData, PetInventory, PetMarriage
 from app.schemas.pet import PetDataResponse, PetDataUpdate, PetInfo, PetMaxInfo
 
 router = APIRouter()
@@ -49,6 +51,10 @@ def pet_data_to_response(pet_data: PetData) -> PetDataResponse:
             next_growth=pet_data.max_next_growth or 100,
             stop_growth=pet_data.max_stop_growth or False
         ),
+        public_uid=pet_data.public_uid or "",
+        marriage_status=pet_data.marriage_status or "single",
+        spouse_uid=pet_data.spouse_uid,
+        intimacy=pet_data.intimacy or 0,
         active_option=pet_data.active_option or {},
         active_value=pet_data.active_value or {},
         other_options=pet_data.other_options or {},
@@ -69,6 +75,20 @@ def init_pet(
         return pet_data_to_response(pet_data)
 
     if pet_data and reset:
+        old_uid = pet_data.public_uid
+        if old_uid:
+            now = datetime.utcnow()
+            marriages = db.query(PetMarriage).filter(
+                or_(PetMarriage.pet_a_uid == old_uid, PetMarriage.pet_b_uid == old_uid),
+                PetMarriage.status == "active"
+            ).all()
+            for m in marriages:
+                m.status = "widowed"
+                m.ended_at = now
+                partner_uid = m.pet_b_uid if m.pet_a_uid == old_uid else m.pet_a_uid
+                db.query(PetData).filter(PetData.public_uid == partner_uid).update(
+                    {"marriage_status": "widowed"}
+                )
         db.query(PetInventory).filter(PetInventory.user_id == current_user.id).delete()
         db.query(PetData).filter(PetData.user_id == current_user.id).delete()
 
@@ -117,6 +137,7 @@ def init_pet(
     now = datetime.utcnow()
     pet_data = PetData(
         user_id=current_user.id,
+        public_uid=uuid.uuid4().hex[:12],
         info_name="宝宝",
         info_host="主人",
         info_sex=pet_sex,

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=280, initial-scale=1.0">
+<title>我的好友</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: 12px; overflow: hidden; width: 280px; height: 440px; }
+
+/* Title bar */
+.title-bar {
+  height: 28px;
+  background: linear-gradient(#0757D9, #0650CC);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  -webkit-app-region: drag;
+}
+.title-bar .title-text {
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+.title-bar .close-btn {
+  width: 18px; height: 18px;
+  background: #c00;
+  border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 11px; font-weight: bold;
+  cursor: pointer; -webkit-app-region: no-drag;
+  line-height: 18px;
+}
+.title-bar .close-btn:hover { background: #e00; }
+
+/* Main content */
+.main-content {
+  height: 412px;
+  background: #E8F0FE;
+  display: flex; flex-direction: column;
+}
+
+/* My nickname */
+.my-nickname-bar {
+  padding: 6px 10px;
+  background: #D8E6F8;
+  display: flex; align-items: center;
+  gap: 6px; border-bottom: 1px solid #B8CCE0;
+}
+.my-nickname-bar .label { color: #557; font-size: 11px; }
+.my-nickname-bar .nickname-text {
+  flex: 1; font-size: 12px; color: #223;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.my-nickname-bar .nickname-input {
+  flex: 1; border: 1px solid #B8CCE0; border-radius: 2px;
+  padding: 2px 4px; font-size: 11px; background: #fff;
+  outline: none;
+}
+.my-nickname-bar .nickname-input:focus { border-color: #0757D9; }
+.my-nickname-bar .nickname-btn {
+  padding: 2px 8px; background: linear-gradient(#fff, #E0E8F0);
+  border: 1px solid #B8CCE0; border-radius: 2px;
+  font-size: 11px; cursor: pointer; color: #333;
+}
+.my-nickname-bar .nickname-btn:hover { background: linear-gradient(#E0E8F0, #ccc); }
+
+/* Tabs */
+.tab-bar {
+  display: flex; border-bottom: 1px solid #B8CCE0;
+}
+.tab-item {
+  flex: 1; text-align: center; padding: 5px 0;
+  font-size: 12px; color: #335; cursor: pointer;
+  background: #D8E6F8; border-right: 1px solid #B8CCE0;
+}
+.tab-item:last-child { border-right: none; }
+.tab-item.active {
+  background: #E8F0FE; font-weight: bold;
+  border-bottom: 1px solid #E8F0FE; margin-bottom: -1px;
+}
+.tab-item .badge {
+  display: inline-block; background: #c00; color: #fff;
+  border-radius: 8px; padding: 0 5px; font-size: 10px;
+  margin-left: 3px; vertical-align: top;
+}
+
+/* List container */
+.list-container {
+  flex: 1; overflow-y: auto;
+  padding: 2px 0;
+}
+.list-container::-webkit-scrollbar { width: 5px; }
+.list-container::-webkit-scrollbar-thumb { background: #B8CCE0; border-radius: 3px; }
+
+/* Group header */
+.group-header {
+  padding: 3px 10px; font-size: 11px; font-weight: bold;
+  color: #6699CC; cursor: pointer; background: #E0ECF8;
+  display: flex; align-items: center;
+  border-bottom: 1px solid #D0DCE8;
+}
+.group-header:hover { background: #D8E6F8; }
+.group-header .arrow {
+  margin-right: 4px; font-size: 10px;
+  transition: transform 0.15s;
+}
+.group-header .arrow.collapsed { transform: rotate(-90deg); }
+.group-header .count { font-weight: normal; color: #889; margin-left: 4px; font-size: 11px; }
+
+/* Friend item */
+.friend-item {
+  padding: 5px 10px 5px 20px; display: flex; align-items: center;
+  gap: 6px; cursor: default; border-bottom: 1px solid #D8E4F0;
+}
+.friend-item:hover { background: #C6DAF5; }
+.friend-item .status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.friend-item .status-dot.online { background: #00CC00; }
+.friend-item .status-dot.offline { background: #AAAAAA; }
+.friend-item .friend-nickname { flex: 1; color: #223; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friend-item .pet-name { color: #889; font-size: 11px; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friend-item .remove-btn {
+  font-size: 10px; color: #999; cursor: pointer; padding: 1px 3px;
+  visibility: hidden;
+}
+.friend-item:hover .remove-btn { visibility: visible; }
+.friend-item .remove-btn:hover { color: #c00; }
+
+/* Pending request */
+.pending-item {
+  padding: 6px 10px; display: flex; align-items: center;
+  gap: 6px; border-bottom: 1px solid #D8E4F0;
+}
+.pending-item:hover { background: #C6DAF5; }
+.pending-item .from { flex: 1; color: #223; font-size: 12px; }
+.pending-item .action-btn {
+  padding: 2px 8px; font-size: 11px; border: 1px solid #B8CCE0;
+  border-radius: 2px; cursor: pointer; background: linear-gradient(#fff, #E0E8F0);
+}
+.pending-item .action-btn.accept:hover { background: linear-gradient(#4CAF50, #388E3C); color: #fff; border-color: #388E3C; }
+.pending-item .action-btn.reject:hover { background: linear-gradient(#f44336, #d32f2f); color: #fff; border-color: #d32f2f; }
+
+/* Bottom add bar */
+.add-bar {
+  padding: 6px 10px;
+  background: #D8E6F8;
+  border-top: 1px solid #B8CCE0;
+  display: flex; align-items: center; gap: 6px;
+}
+.add-bar .add-input {
+  flex: 1; border: 1px solid #B8CCE0; border-radius: 2px;
+  padding: 3px 4px; font-size: 11px; background: #fff;
+  outline: none;
+}
+.add-bar .add-input:focus { border-color: #0757D9; }
+.add-bar .add-btn {
+  padding: 3px 8px; background: linear-gradient(#fff, #E0E8F0);
+  border: 1px solid #B8CCE0; border-radius: 2px;
+  font-size: 11px; cursor: pointer; color: #333;
+}
+.add-bar .add-btn:hover { background: linear-gradient(#E0E8F0, #ccc); }
+
+/* Empty state */
+.empty-state { text-align: center; color: #889; padding: 30px 10px; font-size: 12px; }
+
+/* Toast */
+.toast {
+  position: fixed; top: 0; left: 0; right: 0;
+  text-align: center; padding: 4px; font-size: 11px;
+  z-index: 999; transition: opacity 0.3s; opacity: 0;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.toast.error { background: #FFE0E0; color: #c00; }
+.toast.success { background: #E0FFE0; color: #080; }
+</style>
+</head>
+<body>
+<div class="title-bar">
+  <span class="title-text">我的好友</span>
+  <span class="close-btn" onclick="closeWindow()">x</span>
+</div>
+<div class="main-content" id="app">
+  <div class="my-nickname-bar">
+    <span class="label">昵称:</span>
+    <span class="nickname-text" id="nicknameDisplay"></span>
+    <input class="nickname-input" id="nicknameInput" maxlength="50" placeholder="输入昵称" style="display:none">
+    <button class="nickname-btn" id="nicknameBtn" onclick="toggleNicknameEdit()">修改</button>
+  </div>
+  <div class="tab-bar">
+    <div class="tab-item active" data-tab="friends" onclick="switchTab('friends')">我的好友</div>
+    <div class="tab-item" data-tab="requests" onclick="switchTab('requests')" id="requestsTab">好友请求</div>
+  </div>
+  <div class="list-container" id="listContainer">
+    <div class="empty-state" id="loadingState">加载中...</div>
+  </div>
+  <div class="add-bar">
+    <input class="add-input" id="addInput" placeholder="输入昵称添加好友" maxlength="50">
+    <button class="add-btn" onclick="addFriend()">添加</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="./index.js"></script>
+</body>
+</html>

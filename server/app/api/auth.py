@@ -22,7 +22,8 @@ from app.schemas.auth import (
     Token, 
     UserResponse,
     Message,
-    ChangePasswordRequest
+    ChangePasswordRequest,
+    NicknameUpdate,
 )
 
 router = APIRouter()
@@ -44,9 +45,9 @@ def register(
     hashed_password = get_password_hash(form_data.password)
     user = User(
         username=form_data.username,
+        nickname=form_data.nickname or form_data.username,
         email=form_data.email,
         hashed_password=hashed_password,
-        is_active=False,
         is_admin=False
     )
     db.add(user)
@@ -67,8 +68,8 @@ def login(
         hashed_password = get_password_hash(form_data.password)
         user = User(
             username=form_data.username,
+            nickname=form_data.username,
             hashed_password=hashed_password,
-            is_active=False,
             is_admin=False
         )
         db.add(user)
@@ -244,5 +245,35 @@ def change_password(
     
     current_user.hashed_password = get_password_hash(request.new_password)
     db.commit()
-    
+
     return Message(message="密码已修改")
+
+
+@router.patch("/nickname", response_model=UserResponse)
+def update_nickname(
+    request: NicknameUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Any:
+    nickname = request.nickname.strip()
+    if not nickname:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="昵称不能为空",
+        )
+
+    existing = db.query(User).filter(
+        User.nickname == nickname,
+        User.id != current_user.id
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="该昵称已被使用",
+        )
+
+    current_user.nickname = nickname
+    db.commit()
+    db.refresh(current_user)
+
+    return UserResponse.model_validate(current_user)

@@ -144,6 +144,47 @@ async function updateInventory(data) {
   return response.data;
 }
 
+function getWsUrl() {
+  const httpUrl = auth.getServerUrl();
+  return httpUrl.replace(/^http/, "ws") + "/ws";
+}
+
+async function updateNickname(nickname) {
+  const api = getApiClient();
+  const response = await api.patch("/api/auth/nickname", { nickname });
+  return response.data;
+}
+
+async function getFriends() {
+  const api = getApiClient();
+  const response = await api.get("/api/friends");
+  return response.data;
+}
+
+async function getPendingFriendRequests() {
+  const api = getApiClient();
+  const response = await api.get("/api/friends/pending");
+  return response.data;
+}
+
+async function addFriend(nickname) {
+  const api = getApiClient();
+  const response = await api.post("/api/friends/add", { nickname });
+  return response.data;
+}
+
+async function respondFriendRequest(friendId, action) {
+  const api = getApiClient();
+  const response = await api.post(`/api/friends/${friendId}/respond`, { action });
+  return response.data;
+}
+
+async function removeFriend(friendId) {
+  const api = getApiClient();
+  const response = await api.delete(`/api/friends/${friendId}`);
+  return response.data;
+}
+
 module.exports = {
   getApiClient,
   login,
@@ -151,9 +192,16 @@ module.exports = {
   logout,
   getCurrentUser,
   changePassword,
+  updateNickname,
   getPet,
   initPet,
   updatePet,
   getInventory,
   updateInventory,
+  getFriends,
+  getPendingFriendRequests,
+  addFriend,
+  respondFriendRequest,
+  removeFriend,
+  getWsUrl,
 };

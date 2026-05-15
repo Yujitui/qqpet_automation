@@ -2,10 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import engine, Base
-from app.api import auth, pet, inventory
+from app.database import init_db
+from app.api import auth, pet, inventory, friend
+from app.ws import ws_router
 
-Base.metadata.create_all(bind=engine)
+init_db()
 
 app = FastAPI(
     title="QQ Pet Server",
@@ -24,6 +25,8 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["认证"])
 app.include_router(pet.router, prefix="/api/pet", tags=["宠物数据"])
 app.include_router(inventory.router, prefix="/api/pet/inventory", tags=["背包"])
+app.include_router(friend.router, prefix="/api", tags=["好友"])
+app.include_router(ws_router)
 
 
 @app.get("/")

@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
+    nickname VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE,
     hashed_password VARCHAR(255) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
@@ -11,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_nickname ON users(nickname);
 
 -- 宠物数据表
 CREATE TABLE IF NOT EXISTS pet_data (
@@ -43,6 +45,11 @@ CREATE TABLE IF NOT EXISTS pet_data (
     max_next_growth INTEGER DEFAULT 100,
     max_stop_growth BOOLEAN DEFAULT FALSE,
     
+    public_uid VARCHAR(12) UNIQUE NOT NULL,
+    marriage_status VARCHAR(20) DEFAULT 'single',
+    spouse_uid VARCHAR(12),
+    intimacy INTEGER DEFAULT 0,
+    
     active_option JSONB DEFAULT '{}',
     active_value JSONB DEFAULT '{}',
     other_options JSONB DEFAULT '{}',
@@ -53,6 +60,7 @@ CREATE TABLE IF NOT EXISTS pet_data (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_data_user_id ON pet_data(user_id);
+CREATE INDEX IF NOT EXISTS idx_pet_data_public_uid ON pet_data(public_uid);
 
 -- 背包表
 CREATE TABLE IF NOT EXISTS pet_inventory (
@@ -82,3 +90,35 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_token_jti ON sessions(token_jti);
+
+-- 好友关系表
+CREATE TABLE IF NOT EXISTS friends (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    friend_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, friend_user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_friends_user_id ON friends(user_id);
+CREATE INDEX IF NOT EXISTS idx_friends_friend_user_id ON friends(friend_user_id);
+
+-- 宠物婚姻表
+CREATE TABLE IF NOT EXISTS pet_marriages (
+    id SERIAL PRIMARY KEY,
+    pet_a_uid VARCHAR(12) NOT NULL,
+    pet_b_uid VARCHAR(12) NOT NULL,
+    user_a_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_b_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'active',
+    intimacy INTEGER DEFAULT 0,
+    married_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ended_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_marriages_pet_a_uid ON pet_marriages(pet_a_uid);
+CREATE INDEX IF NOT EXISTS idx_marriages_pet_b_uid ON pet_marriages(pet_b_uid);
+CREATE INDEX IF NOT EXISTS idx_marriages_user_a_id ON pet_marriages(user_a_id);
+CREATE INDEX IF NOT EXISTS idx_marriages_user_b_id ON pet_marriages(user_b_id);

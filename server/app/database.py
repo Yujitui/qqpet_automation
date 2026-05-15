@@ -40,5 +40,5 @@ def get_db():
 
 
 def init_db():
-    from app.models import User, PetData, PetInventory, Session
+    from app.models import User, PetData, PetInventory, Session, Friend, PetMarriage
     Base.metadata.create_all(bind=engine)

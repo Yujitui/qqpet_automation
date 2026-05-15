@@ -24,7 +24,8 @@
     "express": "^4.18.2",
     "iconv-lite": "^0.6.3",
     "node-xlsx": "^0.23.0",
-    "nodejs-websocket": "^1.7.2"
+    "nodejs-websocket": "^1.7.2",
+    "ws": "^8.20.1"
   },
   "author": "xuemian168",
   "repository": "https://github.com/xuemian168/qqpet_automation",

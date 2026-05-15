@@ -9,6 +9,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     email: Optional[str] = None
+    nickname: Optional[str] = None
 
 
 class UserLogin(BaseModel):
@@ -18,8 +19,9 @@ class UserLogin(BaseModel):
 
 class UserResponse(UserBase):
     id: int
+    nickname: str
     is_active: bool
-    
+
     class Config:
         from_attributes = True
 
@@ -45,3 +47,7 @@ class Message(BaseModel):
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str
+
+
+class NicknameUpdate(BaseModel):
+    nickname: str

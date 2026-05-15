@@ -36,6 +36,10 @@ class PetMaxInfo(BaseModel):
 class PetDataResponse(BaseModel):
     info: PetInfo
     max_info: PetMaxInfo
+    public_uid: str = ""
+    marriage_status: str = "single"
+    spouse_uid: Optional[str] = None
+    intimacy: int = 0
     active_option: dict = {}
     active_value: dict = {}
     other_options: dict = {}

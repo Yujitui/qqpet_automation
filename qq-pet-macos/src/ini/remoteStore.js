@@ -1,5 +1,6 @@
 const api = require("../network/api");
 const auth = require("../network/auth");
+const wsClient = require("../network/wsClient");
 const Store = require("electron-store");
 
 const localStore = new Store({
@@ -405,25 +406,39 @@ class RemoteStore {
   async syncPending() {
     if (pendingUpdates.pet) {
       const data = pendingUpdates.pet;
-      console.log("[syncPending] Syncing pet data...");
+      console.log("[syncPending] Syncing pet data via WS...");
       try {
-        await api.updatePet(data);
+        await wsClient.request("sync.pet", "update", data, 3000);
         pendingUpdates.pet = null;
-        console.log("[syncPending] Pet sync succeeded");
-      } catch (e) {
-        console.log("[syncPending] Pet sync failed:", e.message);
+        console.log("[syncPending] Pet sync via WS succeeded");
+      } catch (wsErr) {
+        console.log("[syncPending] WS pet sync failed, falling back to HTTP:", wsErr.message);
+        try {
+          await api.updatePet(data);
+          pendingUpdates.pet = null;
+          console.log("[syncPending] Pet sync via HTTP succeeded");
+        } catch (e) {
+          console.log("[syncPending] Pet sync via HTTP also failed:", e.message);
+        }
       }
     }
 
     if (pendingUpdates.inventory) {
       const data = pendingUpdates.inventory;
-      console.log("[syncPending] Syncing inventory data...");
+      console.log("[syncPending] Syncing inventory data via WS...");
       try {
-        await api.updateInventory(data);
+        await wsClient.request("sync.inventory", "update", data, 3000);
         pendingUpdates.inventory = null;
-        console.log("[syncPending] Inventory sync succeeded");
-      } catch (e) {
-        console.log("[syncPending] Inventory sync failed:", e.message);
+        console.log("[syncPending] Inventory sync via WS succeeded");
+      } catch (wsErr) {
+        console.log("[syncPending] WS inventory sync failed, falling back to HTTP:", wsErr.message);
+        try {
+          await api.updateInventory(data);
+          pendingUpdates.inventory = null;
+          console.log("[syncPending] Inventory sync via HTTP succeeded");
+        } catch (e) {
+          console.log("[syncPending] Inventory sync via HTTP also failed:", e.message);
+        }
       }
     }
   }
@@ -441,6 +456,42 @@ class RemoteStore {
   clear() {
     localStore.clear();
     cache = { pet: null, cache: null, sys: null, localSettings: null };
+  }
+
+  handleWsPush(msg) {
+    const router = msg.router || "";
+    const action = msg.action || "";
+    const data = msg.data || {};
+
+    if (router === "sync.pet" && action === "update") {
+      if (data.info) {
+        for (const [key, value] of Object.entries(data.info)) {
+          const camelKey = snakeToCamel(key);
+          if (cache.pet && cache.pet.info) {
+            cache.pet.info[camelKey] = value;
+          }
+        }
+      }
+      if (data.max_info) {
+        for (const [key, value] of Object.entries(data.max_info)) {
+          const camelKey = snakeToCamel(key);
+          if (cache.pet && cache.pet.maxInfo) {
+            cache.pet.maxInfo[camelKey] = value;
+          }
+        }
+      }
+      console.log("[RemoteStore] WS push applied for pet data");
+    }
+
+    if (router === "sync.inventory" && action === "update") {
+      if (cache.cache && cache.cache.store) {
+        if (data.food) cache.cache.store.food = data.food;
+        if (data.commodity) cache.cache.store.commodity = data.commodity;
+        if (data.medicine) cache.cache.store.medicine = data.medicine;
+        if (data.background) cache.cache.store.background = data.background;
+      }
+      console.log("[RemoteStore] WS push applied for inventory");
+    }
   }
 }
 
